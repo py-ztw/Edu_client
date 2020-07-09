@@ -7,16 +7,34 @@
                 </div>
                 <ul class="nav full-left">
                     <li v-for="(nav, key) in nav_list" :key="key">
-                        <span v-if="nav.position === 1">{{nav.title}}</span>
+                        <span v-if="nav.position === 1 ">
+                          <span v-if="nav.is_site"><a :href="nav.link">{{nav.title}}</a></span>
+                        <!--                本项目的路由        -->
+                        <span v-else><router-link :to="nav.link">{{nav.title}}</router-link></span>
+                        </span>
                     </li>
                 </ul>
-                <div class="login-bar full-right">
+
+              <div class="login-bar full-right" v-if="token">
                     <div class="shop-cart full-left">
                         <img src="/static/image/" alt="">
                         <span><router-link to="/cart">购物车</router-link></span>
                     </div>
                     <div class="login-box full-left">
-                        <span>登录</span>
+                        <router-link to="/home/login/">个人中心</router-link>
+                        &nbsp;|&nbsp;
+                        <span @click="remvo">退出登录</span>
+                    </div>
+                </div>
+
+                <!--          用户不存在      -->
+                <div class="login-bar full-right" v-else>
+                    <div class="shop-cart full-left">
+                        <img src="/static/image/" alt="">
+                        <span><router-link to="/cart">购物车</router-link></span>
+                    </div>
+                    <div class="login-box full-left">
+                        <router-link to="/home/login/">登录</router-link>
                         &nbsp;|&nbsp;
                         <span>注册</span>
                     </div>
@@ -32,9 +50,20 @@
         data(){
             return{
                 nav_list:[],
+                token:"",
             }
         },
         methods:{
+            remvo(){
+                if(confirm('确定要退出吗')){
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    this.$message.success("退出成功");
+                    location.reload()
+                }
+
+
+            },
             get_all_banner(){
                 this.$axios({
                     url:this.$settings.HOST+'home/nav/',
@@ -47,11 +76,16 @@
                     console.log(error);
                 })
             },
+             get_token() {
+                this.token = localStorage.user_token || sessionStorage.user_token;
+                // return this.token;
+            },
         },
-        created() {
+         created() {
             // 获取轮播图数据
             this.get_all_banner();
-        }
+            this.get_token();
+         }
     }
 </script>
 
