@@ -14,7 +14,7 @@
                     </div>
                     <button class="register_btn" @click="user_register">注册</button>
                     <p class="go_login">已有账号
-                        <router-link to="/home/login">直接登录</router-link>
+                        <router-link to="/home/login/">直接登录</router-link>
                     </p>
                 </div>
             </div>

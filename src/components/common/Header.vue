@@ -56,8 +56,13 @@
         methods:{
             remvo(){
                 if(confirm('确定要退出吗')){
-                    localStorage.clear();
-                    sessionStorage.clear();
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('user_token');
+                    localStorage.removeItem('user_id');
+
+                    sessionStorage.removeItem('username');
+                    sessionStorage.removeItem('user_token');
+                    sessionStorage.removeItem('user_id');
                     this.$message.success("退出成功");
                     location.reload()
                 }
