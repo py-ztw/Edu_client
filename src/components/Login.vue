@@ -1,6 +1,6 @@
 <template>
     <div class="login box">
-        <img src="../../static/image/03.png" alt="">
+        <img src="../../static/image/3dbcb2a9d8da469db071116bf60529e2.jpeg" alt="">
         <div class="login">
             <div class="login-title">
                 <img src="../../static/image/logo.png" alt="">
@@ -24,7 +24,7 @@
                     </div>
                     <button class="login_btn btn btn-primary" @click="get_captcha">登录</button>
                     <p class="go_login">没有账号
-                        <span>立即注册</span>
+                        <router-link to="/user/register" style="color: greenyellow"> 立即注册</router-link>
                     </p>
                 </div>
                 <div class="inp" v-show="">
