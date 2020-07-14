@@ -20,6 +20,14 @@ Vue.config.productionTip = false;
 import settings from "./settings";
 Vue.prototype.$settings = settings;
 
+
+// vue-video-player
+require('video.js/dist/video-js.css');
+require('vue-video-player/src/custom-theme.css');
+import VideoPlayer from 'vue-video-player'
+
+Vue.use(VideoPlayer);
+
 // 全局css
 import "../static/css/global.css"
 
