@@ -42,22 +42,14 @@
                     <li :class="tabIndex===1?'active':''" @click="tabIndex=1">详情介绍</li>
                     <li :class="tabIndex===2?'active':''" @click="tabIndex=2">课程章节 <span :class="tabIndex!==2?'free':''">(试学)</span>
                     </li>
-                    <li :class="tabIndex===3?'active':''" @click="tabIndex=3">学生评论 (88)</li>
+                    <li :class="tabIndex===3?'active':''" @click="tabIndex=3">学生评论 ({{tableData.length}})</li>
                     <li :class="tabIndex===4?'active':''" @click="tabIndex=4">常见问题</li>
                 </ul>
             </div>
             <div class="course-content">
                 <div class="course-tab-list">
                     <div class="tab-item" v-if="tabIndex===1">
-                        <p><img alt=""
-                                src=""
-                                width="840"></p>
-                        <p><img alt=""
-                                src=""
-                                width="840"></p>
-                        <p><img alt=""
-                                src=""
-                                width="840"></p>
+                        <div v-html="course.brief_html"></div>
                     </div>
                     <div class="tab-item" v-if="tabIndex===2">
                         <div class="tab-item-title">
@@ -65,10 +57,10 @@
                             <p class="chapter-length">共{{this.course.course_chapters.length}}章 {{this.course.lessons}}个课时</p>
                         </div>
                         <div class="chapter-item" v-for="chapter in this.course.course_chapters">
-                            <p class="chapter-title"><img src="/static/image/03.png" alt="">{{chapter.name}}</p>
+                            <p class="chapter-title"><img src="/static/image/03.png" alt="">第{{chapter.chapter}}章:{{chapter.name}}</p>
                             <ol class="lesson-list" v-for="lesson in chapter.lessons">
                                 <li class="lesson-item"  v-if="lesson.id===chapter.id">
-                                    <p class="name "><span class="index">{{lesson.name}}</span><span class="free" v-if="lesson.free_trail">免费</span>
+                                    <p class="name "><span class="index">{{chapter.id}}-{{lesson.chapter_lessons}}</span><span class="index">{{lesson.name}}</span><span class="free" v-if="lesson.free_trail">免费</span>
                                     </p>
                                     <p class="time">07:30 <img src="/static/image/03.png"></p>
                                     <button class="try">立即试学</button>
@@ -78,10 +70,27 @@
 
                     </div>
                     <div class="tab-item" v-if="tabIndex===3">
-                        用户评论
+                       <el-table :data="tableData" height="250" border style="width: 850%">
+                         <el-table-column prop="create_time" label="发表日期" width="180">
+                         </el-table-column>
+                         <el-table-column prop="student_name" label="学生姓名" width="180">
+                         </el-table-column>
+                         <el-table-column prop="student_comments" label="评论">
+                         </el-table-column>
+                       </el-table>
+                      <hr>
+                        <el-form ref="form" :model="form" label-width="150px">
+                          <el-form-item label="请发表意见吧~">
+                            <el-input type="textarea" v-model="comment" style="width: 450px"></el-input>
+                          </el-form-item>
+                          <el-form-item>
+                            <el-button type="primary" @click="onSubmit">发表</el-button>
+                            <el-button>取消</el-button>
+                          </el-form-item>
+                        </el-form>
                     </div>
                     <div class="tab-item" v-if="tabIndex===4">
-                        常见问题
+                      <a href="https://daohang.qq.com/?fr=hmpage">视频无法播放？</a>
                     </div>
                 </div>
                 <div class="course-side">
@@ -119,8 +128,11 @@
             return {
                 course_id: 0,
                 course:[],
+                tableData:[],
                 tabIndex: 2, // 当前选项卡显示的下标
-               playerOptions: {
+                comment:"",
+                student_name:"",
+                playerOptions: {
                     playbackRates: [0.7, 1.0, 1.5, 2.0], // 播放速度
                     autoplay: false, //如果true,则自动播放
                     muted: false, // 默认情况下将会消除任何音频。
@@ -140,6 +152,48 @@
             }
         },
       methods:{
+        get_comments(){
+            this.$axios({
+              url:`${this.$settings.HOST}course/comments/`,
+              method:"get",
+              params:{
+                comments_course:this.course_id,
+              }
+            }).then(res=>{
+              this.tableData=res.data;
+              console.log(this.tableData)
+            }).catch(error=>{
+              this.$message.error("评论拉取失败，再试试吧")
+            })
+        },
+        onSubmit(){
+          if(localStorage.user_token || sessionStorage.user_token){
+            if(localStorage.username ){
+              this.student_name=localStorage.username
+            }else {
+              this.student_name=sessionStorage.username
+            }
+            this.$axios({
+              url:`${this.$settings.HOST}course/comments/`,
+              method:"post",
+              data:{
+                comments_course:this.course_id,
+                student_comments: this.comment,
+                student_name:this.student_name,
+                is_show:1,
+              }
+            }).then(res=>{
+              this.$message.success("发表成功");
+
+              location.reload()
+            }).catch(error=>{
+              this.$message.error("发表失败，再试试吧")
+            })
+          }else {
+              this.$message.error("只有登录才能评论哦~")
+          }
+
+        },
         onPlayerPlay(event) {
 
         },
@@ -150,7 +204,10 @@
           this.$axios.get(`${this.$settings.HOST}course/list/`+this.course_id+'/').then(response => {
                     this.course=response.data;
                     // this.pic = response.data.teacher.image;
-                    console.log(this.course.teacher.image)
+                    this.playerOptions.sources[0].src=response.data.course_video;
+                    this.playerOptions.poster=response.data.course_img;
+
+                    console.log(response.data)
                 }).catch(error => {
                     console.log(error.response);
                 })
@@ -158,7 +215,8 @@
       },
       created() {
           this.course_id = localStorage.cid;
-          this.get_course()
+          this.get_course();
+          this.get_comments()
       },
        components: {
             Header, Footer, videoPlayer
