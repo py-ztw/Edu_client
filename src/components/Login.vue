@@ -8,13 +8,13 @@
             </div>
            <div class="login_box">
                 <div class="title">
-                    <span>密码登录</span>
-                    <span>短信登录</span>
+                    <span @click="change_login(1)">密码登录</span>
+                    <span @click="change_login(2)">短信登录</span>
                 </div>
-                <div class="inp" v-if="">
-                    <input type="text" placeholder="用户名 / 手机号码" class="user" v-model="username">
+                <div class="inp"  v-if="category==1">
+                    <input  type="text" placeholder="用户名 / 手机号码" class="user" v-model="username">
                     <input type="password" name="" class="pwd" placeholder="密码" v-model="password">
-                    <div id="geetest1"></div>
+                  <div id="geetest1"></div>
                     <div class="rember">
                         <p>
                             <input type="checkbox" class="no" v-model="remember_me"  id="rem" checked="checked"/>
@@ -27,13 +27,16 @@
                         <router-link to="/user/register" style="color: greenyellow"> 立即注册</router-link>
                     </p>
                 </div>
-                <div class="inp" v-show="">
-                    <input type="text" placeholder="手机号码" class="user">
-                    <input type="text" class="pwd" placeholder="短信验证码">
-                    <button id="get_code" class="btn btn-primary">获取验证码</button>
-                    <button class="login_btn">登录</button>
+                <div class="inp" v-if="category==2">
+                    <input type="text" placeholder="手机号码" class="user" v-model="username"  @blur="checkMobile">
+                    <div class="sms-box">
+                        <input v-model="code" type="text" maxlength="6" placeholder="输入验证码" class="user">
+                        <div class="sms-btn" @click="get_code">{{sms_text}}</div>
+                    </div>
+                    <div id="geetest2"></div>
+                    <button class="login_btn" @click="user_register">登录</button>
                     <span class="go_login">没有账号
-                    <span>立即注册</span>
+                    <router-link to="/user/register" style="color: greenyellow"> 立即注册</router-link>
                 </span>
                 </div>
             </div>
@@ -49,12 +52,84 @@
                 username: "",
                 password: "",
                 remember_me: false,
+                category:1,
+                sms_text: "点击获取验证码", // 提示语
+                user_phone:"",
+                code:"",
+
             }
         },
         methods: {
+
+          user_register() {
+                this.$axios({
+                    url: this.$settings.HOST + "user/userlogin/",
+                    method: "post",
+                    data: {
+                        phone: this.username,
+                        sms_code: this.code,
+                    }
+                }).then(response => {
+                     localStorage.clear();
+                     sessionStorage.clear()
+                    // localStorage.removeItem("username");
+                    this.password=response.data.results['test']
+                    this.user_login()
+                }).catch(error => {
+                    console.log(error.response);
+                    this.$message.error("登录失败");
+                })
+            },
+               checkMobile() {
+                this.$axios({
+                    url: this.$settings.HOST + "user/phone/" + `${this.username}`,
+                    method: "get",
+                }).catch(error => {
+                    this.$message.error(error.response.data)
+                })
+            },
+
+
+
+           get_code() {
+
+                // 验证手机号格式
+                if (!/1[35689]\d{9}/.test(this.username)||this.username.length!==11) {
+                    this.$alert("手机号格式有误", "警告");
+                    return false
+                }
+
+                this.$axios({
+                    url: this.$settings.HOST + "user/sms/" + `${this.username}`,
+                    method: "get",
+                }).then(response => {
+                    console.log(response.data);
+
+                    // 成功则可以再次发送短信
+                    this.sms_flag = true;
+                    let interval = 60;
+                    let timer = setInterval(() => {
+                        if (interval <= 1) {
+                            // 停止倒计时  允许发送短信
+                            clearInterval(timer);
+                            this.sms_flag = false; // 设置允许发送短信 false
+                            this.sms_text = `点击发送短信`
+                        } else {
+                            interval--;
+                            this.sms_text = `${interval}后可以点击发送`;
+                        }
+                    }, 1000)
+
+                }).catch(error => {
+                    console.log(error.response);
+                    this.$message.error("当前手机号已经发送过短信")
+                })
+            },
+            change_login(num){
+              this.category=num
+            },
             // 点击登录时  弹出验证码框 当验证码成功验证后  才可以发起登录请求
             get_captcha() {
-                console.log(this.remember_me)
                 // 向API服务端发起请求获取验证码
                 this.$axios({
                     url: this.$settings.HOST + "user/captcha/",
@@ -105,9 +180,15 @@
                         console.log(error);
                     });
                 });
-                //  将生成的验证码添加到 id为geetest1的div中
-                document.getElementById("geetest1").innerHTML = "";
+                if(this.category==1){
+                    document.getElementById("geetest1").innerHTML = "";
                 captchaObj.appendTo("#geetest1");
+                }else {
+                   //  将生成的验证码添加到 id为geetest1的div中
+                document.getElementById("geetest2").innerHTML = "";
+                captchaObj.appendTo("#geetest2");
+                }
+
             },
 
             // 用户登录的方法
@@ -329,5 +410,23 @@
     .inp .go_login span {
         color: #84cc39;
         cursor: pointer;
+    }
+     .sms-box {
+        position: relative;
+    }
+
+    .sms-btn {
+        font-size: 14px;
+        color: #ffc210;
+        letter-spacing: .26px;
+        position: absolute;
+        right: 16px;
+        top: 10px;
+        cursor: pointer;
+        overflow: hidden;
+        background: #fff;
+        border-left: 1px solid #484848;
+        padding-left: 16px;
+        padding-bottom: 4px;
     }
 </style>

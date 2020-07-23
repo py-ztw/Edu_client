@@ -3,6 +3,7 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import store from  './store/index'
 
 Vue.config.productionTip = false
 import axios from "axios"
@@ -37,6 +38,7 @@ import "../static/js/gt.js"
 new Vue({
   el: '#app',
   router,
+  store,
   components: { App },
   template: '<App/>'
 })

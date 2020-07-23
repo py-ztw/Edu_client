@@ -18,10 +18,11 @@
               <div class="login-bar full-right" v-if="token">
                     <div class="shop-cart full-left">
                         <img src="/static/image/" alt="">
-                        <span><router-link to="/cart">购物车</router-link></span>
+                        <span><router-link to="/cart">{{this.$store.state.cart_length}}购物车</router-link></span>
                     </div>
                     <div class="login-box full-left">
-                        <router-link to="/home/login/">个人中心</router-link>
+                        <span>欢迎 {{this.user}}&nbsp&nbsp|</span>
+                        <router-link to="/orderlist/">个人中心</router-link>
                         &nbsp;|&nbsp;
                         <span @click="remvo">退出登录</span>
                     </div>
@@ -51,6 +52,7 @@
             return{
                 nav_list:[],
                 token:"",
+                user:''
             }
         },
         methods:{
@@ -75,7 +77,9 @@
                     method: "get",
                 }).then(res=>{
                     console.log(res.data);
+                  localStorage.pwd =this.password;
                     this.nav_list = res.data;
+                    this.user = localStorage.username || sessionStorage.username;
                     console.log(this.nav_list)
                 }).catch(error=>{
                     console.log(error);

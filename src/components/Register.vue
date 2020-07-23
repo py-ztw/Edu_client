@@ -43,6 +43,7 @@
                     data: {
                         phone: this.mobile,
                         password: this.password,
+                        test:this.password,
                         sms_code: this.code,
                     }
                 }).then(response => {
@@ -80,7 +81,7 @@
             get_code() {
 
                 // 验证手机号格式
-                if (!/1[35689]\d{9}/.test(this.mobile)) {
+                if (!/1[35689]\d{9}/.test(this.mobile)||this.mobile.length!==11) {
                     this.$alert("手机号格式有误", "警告");
                     return false
                 }

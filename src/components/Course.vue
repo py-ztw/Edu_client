@@ -29,7 +29,7 @@
                         <li class="price" @click="change_order_type('price')" :class="change_order_class('price')">价格
                         </li>
                     </ul>
-                    <p class="condition-result">共21个课程</p>
+                    <p class="condition-result">共{{total}}个课程</p>
                 </div>
 
             </div>
@@ -57,10 +57,13 @@
 
                         </ul>
                         <div class="pay-box">
-                            <span class="discount-type">限时免费</span>
-                            <span class="discount-price">￥0.00元</span>
+                          <div v-if="course.discount_name">
+                            <span class="discount-type" >{{course.discount_name}}</span>
+                            <span class="discount-price">￥{{course.real_price}}</span>
                             <span class="original-price">原价：{{course.price}}元</span>
-                            <span class="buy-now">立即购买</span>
+                          </div>
+                            <span class="discount-price" v-else>现价：{{course.price}}元</span>
+                            <span class="buy-now" @click="buy_now(course.id,course.name,course.real_price,course.price,course.course_img,course.discount_name)">立即购买</span>
                         </div>
                     </div>
                 </div>
@@ -82,8 +85,14 @@
 </template>
 
 <script>
+   import Header from "./common/Header";
+    import Footer from "./common/Footer";
     export default {
         name: "Course",
+        components: {
+            Header: Header,
+            Footer: Footer,
+        },
         data() {
             return {
                 category_list: [],  // 分类列表
@@ -109,6 +118,45 @@
             },
         },
         methods: {
+          check_user_login(){
+           let token = localStorage.user_token || sessionStorage.user_token;
+           if(!token){
+             let self = this;
+             this.$confirm("只有登录才能添加购物车哦~",{
+               callback(){
+                 self.$router.push("/home/login/")
+               }
+             });
+             return false;
+           }
+           return token;
+        },
+            buy_now(id,name,real_price,price,course_img,discount_name){
+              event.stopPropagation();
+              let course_id = id
+              let course ={
+                'name':name,
+                'real_price':real_price,
+                'price':price,
+                'expire_text':'永久有效',
+                'course_img':course_img,
+                'discount_name':discount_name
+              };
+              sessionStorage.course = JSON.stringify(course)
+              let token = this.check_user_login();
+              this.$axios.post(`${this.$settings.HOST}cart/option/`,{
+              course_id:course_id,now:true
+            },{
+              headers:{
+                "Authorization":"jwt "+token,
+              }
+            }).then(response => {
+                     this.$router.push('/order')
+                }).catch(error => {
+                    console.log(error.response);
+                })
+            },
+
             routers(cid){
               localStorage.cid =cid;
               this.$router.push("/course/detail")
@@ -137,6 +185,7 @@
                 this.$axios.get(`${this.$settings.HOST}course/list_filter/`, {
                     params: filters
                 }).then(response => {
+                  console.log("this is course list")
                     console.log(response.data);
                     // 分页之前的
                     // this.course_list = response.data;
@@ -151,6 +200,7 @@
             get_all_category() {
                 this.$axios.get(`${this.$settings.HOST}course/category/`).then(response => {
                     this.category_list = response.data;
+
                 })
             },
             // 改变排序的条件

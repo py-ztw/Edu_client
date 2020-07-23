@@ -19,21 +19,28 @@
                                                                                                                                                             <span v-if="this.course.level===0">入门</span>
                                                                                                                                                             <span v-else-if="this.course.level===1">进阶</span>
                                                                                                                                                             <span v-else="this.course.level===2">大师</span></p>
-                    <div class="sale-time">
-                        <p class="sale-type">限时免费</p>
-                        <p class="expire">距离结束：仅剩 110天 13小时 33分 <span class="second">08</span> 秒</p>
+                    <div class="sale-time" v-if="course.discount_name">
+                        <p class="sale-type" >{{course.discount_name}}</p>
+                        <p class="expire">距离结束：仅剩 <span class="second">{{parseInt(course.active_time/(24*3600))}}</span>天
+                            <span class="second">{{parseInt(course.active_time/3600%24)}}</span>小时
+                            <span class="second">{{parseInt(course.active_time/60%60)}}</span>分 <span class="second">{{parseInt(course.active_time%60)}}</span>
+                            秒</p>
                     </div>
-                    <p class="course-price">
+                    <p class="course-price" v-if="course.discount_name">
                         <span>活动价</span>
-                        <span class="discount">¥0.00</span>
+                        <span class="discount">¥{{course.real_price}}</span>
                         <span class="original">{{this.course.price}}</span>
+                    </p>
+                    <p class="course-price" v-else>
+                        <span>现价</span>
+                        <span class="discount">¥{{this.course.price}}</span>
                     </p>
                     <div class="buy">
                         <div class="buy-btn">
-                            <button class="buy-now">立即购买</button>
+                            <button class="buy-now" @click="buy_now(course.id,course.name,course.real_price,course.price,course.course_img,course.discount_name)">立即购买</button>
                             <button class="free">免费试学</button>
                         </div>
-                        <div class="add-cart"><img src="/static/image/03.png" alt="">加入购物车</div>
+                        <div class="add-cart" @click="add_cart"><img src="/static/image/03.png" alt="">加入购物车</div>
                     </div>
                 </div>
             </div>
@@ -152,6 +159,65 @@
             }
         },
       methods:{
+          buy_now(id,name,real_price,price,course_img,discount_name){
+              event.stopPropagation();
+              let course_id = id
+              let course ={
+                'name':name,
+                'real_price':real_price,
+                'price':price,
+                'expire_text':'永久有效',
+                'course_img':course_img,
+                'discount_name':discount_name
+              };
+              sessionStorage.course = JSON.stringify(course)
+              let token = this.check_user_login();
+              this.$axios.post(`${this.$settings.HOST}cart/option/`,{
+              course_id:course_id,now:true
+            },{
+              headers:{
+                "Authorization":"jwt "+token,
+              }
+            }).then(response => {
+                     this.$router.push('/order')
+                }).catch(error => {
+                    console.log(error.response);
+                })
+            },
+          // 添加购物车
+         add_cart(){
+           // 检查登录状态
+            let token = this.check_user_login();
+            // 添加商品
+            this.$axios.post(`${this.$settings.HOST}cart/option/`,{
+              course_id:this.course_id,
+            },{
+              headers:{
+                "Authorization":"jwt "+token,
+              }
+            }).then(response => {
+                    this.$message.success(response.data.message);
+                    //向状态机提交动作修改购物车内的商品总数
+                    this.$store.commit("add_cart",response.data.cart_length)
+                }).catch(error => {
+                    console.log(error.response);
+                })
+         },
+
+        check_user_login(){
+           let token = localStorage.user_token || sessionStorage.user_token;
+           if(!token){
+             let self = this;
+             this.$confirm("只有登录才能添加购物车哦~",{
+               callback(){
+                 self.$router.push("/home/login/")
+               }
+             });
+             return false;
+           }
+           return token;
+        },
+
         get_comments(){
             this.$axios({
               url:`${this.$settings.HOST}course/comments/`,
@@ -206,8 +272,16 @@
                     // this.pic = response.data.teacher.image;
                     this.playerOptions.sources[0].src=response.data.course_video;
                     this.playerOptions.poster=response.data.course_img;
-
-                    console.log(response.data)
+                    if (this.course.active_time > 0) {
+                        let timer = setInterval(() => {
+                            if (this.course.active_time > 1) {
+                                this.course.active_time -= 1
+                            } else {
+                                clearInterval(timer)
+                            }
+                        }, 1000)
+                    }
+                    console.log(response.data,'this is cd')
                 }).catch(error => {
                     console.log(error.response);
                 })
